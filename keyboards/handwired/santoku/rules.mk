@@ -66,7 +66,8 @@ WPM_ENABLE = yes		# Enable Words Per Minute Count for OLED
 OLED_DRIVER_ENABLE = yes
 PS2_MOUSE_ENABLE = yes
 PS2_USE_USART = yes
-//POINTING_DEVICE_ENABLE = yes
+COMBO_ENABLE = yes
+ENCODER_ENABLE = yes
 
 
 SRC = i2c.c \

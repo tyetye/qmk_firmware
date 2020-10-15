@@ -10,6 +10,8 @@ extern keymap_config_t keymap_config;
 #define IGNORE_MOD_TAP_INTERRUPT
 #define TAPPING_TERM 750
 
+
+
 enum santoku_layers 
 {
 	_QWERTY,
@@ -28,7 +30,71 @@ enum santoku_keycodes
 	OVERVIEW
 };
 
+enum combos
+{
+	JK_ESC,
+	MCOMMA_FORWARDHISTORY,
+	NM_BACKHISTORY,
+	HJ_CLOSETAB,
+	YU_PREVTAB,
+	UI_NEXTTAB
+};
+
+const uint16_t PROGMEM jk_combo[] = {KC_J, KC_K, COMBO_END};
+const uint16_t PROGMEM mcomma_combo[] = {KC_M, KC_COMM, COMBO_END};
+const uint16_t PROGMEM nm_combo[] = {KC_N, KC_M, COMBO_END};
+const uint16_t PROGMEM hj_combo[] = {KC_H, KC_J, COMBO_END};
+const uint16_t PROGMEM yu_combo[] = {KC_Y, KC_U, COMBO_END};
+const uint16_t PROGMEM ui_combo[] = {KC_U, KC_I, COMBO_END};
+
+combo_t key_combos[COMBO_COUNT] = {
+  [JK_ESC]            = COMBO_ACTION(jk_combo),
+  [UI_NEXTTAB]        = COMBO_ACTION(ui_combo),
+  [YU_PREVTAB]        = COMBO_ACTION(yu_combo),
+  [HJ_CLOSETAB]       = COMBO_ACTION(hj_combo),
+  [NM_BACKHISTORY]    = COMBO_ACTION(nm_combo),
+  [MCOMMA_FORWARDHISTORY] = COMBO_ACTION(mcomma_combo)
+};
+
+void process_combo_event(uint8_t combo_index, bool pressed) {
+  switch(combo_index) {
+    case JK_ESC:
+      if (pressed) {
+        tap_code16(KC_ESC);
+      }
+      break;
+    case UI_NEXTTAB:
+      if (pressed) {
+        tap_code16(LCTL(KC_PGDN));
+      }
+      break;
+    case YU_PREVTAB:
+      if (pressed) {
+        tap_code16(LCTL(KC_PGUP));
+      }
+      break;
+    case HJ_CLOSETAB:
+      if (pressed) {
+        tap_code16(LCTL(KC_W));
+      }
+      break;
+    case NM_BACKHISTORY:
+      if (pressed) {
+        tap_code16(LALT(KC_LEFT));
+      }
+      break;
+    case MCOMMA_FORWARDHISTORY:
+      if (pressed) {
+        tap_code16(LALT(KC_RGHT));
+      }
+      break;
+  }
+}
+
 static bool in_alttab = false; // does an ALT-TAB, for windows cycling, without an alt key
+
+//const uint16_t PROGMEM test_combo[] = {KC_K, KC_J, COMBO_END};
+//combo_t key_combos[COMBO_COUNT] = {COMBO(test_combo, KC_ESC)};
 
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 	[_QWERTY] = { /*QWERTY*/
@@ -39,21 +105,21 @@ https://docs.qmk.fm/#/faq_keymap?id=arrow-on-right-modifier-keys-with-dual-role 
 		{KC_TAB,              KC_Q,              KC_W,     KC_E,    KC_R,     KC_T,   KC_Y,         KC_U,       KC_I,    KC_O,   KC_P,                  KC_BSLS },
 		{MT(MOD_LGUI,KC_ESC), MT(MOD_LCTL,KC_A), KC_S,     KC_D,    KC_F,     KC_G,   KC_H,         KC_J,       KC_K,    KC_L,   MT(MOD_RCTL,KC_SCLN),  MT(MOD_RGUI,KC_QUOT)},
 		{KC_LSFT,             MT(MOD_LALT,KC_Z), KC_X,     KC_C,    KC_V,     KC_B,   KC_N,         KC_M,       KC_COMM, KC_DOT, MT(MOD_RALT,KC_SLSH),  KC_RSFT },
-		{XXXXXXX,             XXXXXXX,           XXXXXXX,  LT(_FUNC,KC_BSPC), KC_SPC, ONETAPALTTAB, NAVIGATION, SYMBOL,  KC_ENT, XXXXXXX,    XXXXXXX,   XXXXXXX }
+		{XXXXXXX,             XXXXXXX,           XXXXXXX,  LT(_FUNC,KC_BSPC), KC_SPC, ONETAPALTTAB, TT(_NAVIGATION), TT(_SYMBOL),  KC_ENT, XXXXXXX,    XXXXXXX,   XXXXXXX }
 	},
 
 	[_SYMBOL] = {/*SYMBOL*/
 		{KC_GRV,               KC_EXLM,              KC_AT,   KC_HASH, KC_DLR,  KC_PERC,  KC_CIRC,  KC_AMPR, KC_ASTR,    KC_LPRN, KC_RPRN,              KC_MINS },
 		{MT(MOD_LGUI,KC_ESC),  MT(MOD_LCTL,KC_1),    KC_2,    KC_3,    KC_4,    KC_5,     KC_6,     KC_7,    KC_8,       KC_9,    MT(MOD_RCTL,KC_0),    MT(MOD_RGUI,KC_EQL) },
 		{KC_LSFT,              MT(MOD_LALT,KC_BSLS), KC_UNDS, KC_PLUS, KC_LCBR, KC_RCBR,  KC_LBRC,  KC_RBRC, KC_COMM,    KC_DOT,  MT(MOD_RALT,KC_SLSH), KC_RSFT },
-		{XXXXXXX,              XXXXXXX,              XXXXXXX, KC_BSPC, KC_SPC,  XXXXXXX,  XXXXXXX,  XXXXXXX, XXXXXXX,    XXXXXXX, XXXXXXX,              XXXXXXX }
+		{XXXXXXX,              XXXXXXX,              XXXXXXX, KC_BSPC, KC_SPC,  XXXXXXX,  _______,  _______, KC_ENT,    XXXXXXX, XXXXXXX,              XXXXXXX }
 	},
 
 	[_NAVIGATION] = {/*NAVIGATION*/
 		{KC_TAB,              XXXXXXX,                RCTL(KC_RGHT),  XXXXXXX,  XXXXXXX,     XXXXXXX,       KC_HOME,       KC_PGDN,      KC_PGUP,  KC_END,   RCTL(KC_TAB), XXXXXXX  },
 		{MT(MOD_LGUI,KC_ESC), KC_LCTL,                XXXXXXX,        XXXXXXX,  KC_MS_WH_DOWN,     OVERVIEW,      KC_LEFT,       KC_DOWN,      KC_UP,    KC_RGHT,  KC_RCTL,      KC_RGUI  },
 		{KC_LSFT,             MT(MOD_LALT,OVERVIEW),  XXXXXXX,        XXXXXXX,  KC_MS_WH_UP,       RCTL(KC_LEFT), LGUI(KC_LBRC), LGUI(KC_RBRC),LGUI(LSFT(KC_EQL)),  LGUI(LSFT(KC_MINS)),  KC_RALT,      KC_RSFT  },
-		{XXXXXXX,             XXXXXXX,                XXXXXXX,        KC_DEL,   KC_SPC,      OVERVIEW,      XXXXXXX,       XXXXXXX,      XXXXXXX,  XXXXXXX,  XXXXXXX,      XXXXXXX  }
+		{XXXXXXX,             XXXXXXX,                XXXXXXX,        KC_DEL,   KC_SPC,      OVERVIEW,      _______,       _______,      KC_ENT,  XXXXXXX,  XXXXXXX,      XXXXXXX  }
 	},
 
 	[_FUNC] = {/*FUNCTION*/
@@ -64,6 +130,16 @@ https://docs.qmk.fm/#/faq_keymap?id=arrow-on-right-modifier-keys-with-dual-role 
 	}
 
 };
+
+void encoder_update_user(uint8_t index, bool clockwise) {
+        if (clockwise) {
+            tap_code(KC_PGDN);
+            //tap_code(KC_WH_U);
+        } else {
+            tap_code(KC_PGUP);
+            //tap_code(KC_WH_D);
+        }
+}
 
 
 void keyboard_post_init_user(void) {
@@ -110,14 +186,15 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
 			if (record->event.pressed) {
 				SEND_STRING(SS_DOWN(X_LGUI) SS_TAP(X_F5));
 				SEND_STRING(SS_UP(X_LGUI));
-				_delay_ms(750);
+				_delay_ms(500);
 				SEND_STRING(SS_TAP(X_DOWN));
-				_delay_ms(100);
-				SEND_STRING(SS_TAP(X_DOWN));
+				//_delay_ms(100);
+				//SEND_STRING(SS_TAP(X_DOWN));
 			}
 			return false;
 			break;
 
+			/*
 		case NAVIGATION:
 			if (record->event.pressed) {
 				layer_on(_NAVIGATION);
@@ -135,6 +212,7 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
 			}
 			return false;
 			break;
+			*/
 
 		case FUNC:
 			if (record->event.pressed) {

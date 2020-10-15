@@ -40,8 +40,19 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #define UNUSED_PINS
 // Configure the SSD1306OLED display
 
+// For the COMBO keys function.
+#define COMBO_TERM  40	
+#define COMBO_COUNT 6
+
+#define TAPPING_TOGGLE 1  /* How many times TT(__layer__) needs to be tapped to stick */
+
 //#define USE_I2C
 #define SSD1306OLED
+
+// Configure rotary encoder
+#define ENCODERS_PAD_A { D4 }
+#define ENCODERS_PAD_B { D7 }
+#define ENCODER_RESOLUTION 2
 
 #ifdef PS2_MOUSE_ENABLE
 //#define PS2_MOUSE_SCROLL_DIVISOR_H 7	

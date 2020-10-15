@@ -69,6 +69,13 @@ void ps2_mouse_init(void) {
 __attribute__((weak)) void ps2_mouse_init_user(void) {}
 
 void ps2_mouse_task(void) {
+	/*
+    static uint8_t delay_counter = 0;
+    delay_counter++;
+    if (delay_counter > 4) return;
+    if (delay_counter > 6) delay_counter = 0;
+    */
+
     static uint8_t buttons_prev = 0;
     extern int     tp_buttons;
 
@@ -144,6 +151,19 @@ static inline void ps2_mouse_convert_report_to_hid(report_mouse_t *mouse_report)
     // Meanwhile USB HID mouse indicates 8bit data(-127 to 127), note that -128 is not used.
     //
     // This converts PS/2 data into HID value. Use only -127-127 out of PS/2 9-bit.
+    
+    //mouse_report->x = X_IS_NEG ? pow(mouse_report->x >>1, 2) * -1 : pow(mouse_report->x >>1, 2);
+    //mouse_report->y = Y_IS_NEG ? pow(mouse_report->y >>1, 2) * -1 : pow(mouse_report->y >>1, 2);
+
+    // https://github.com/sevanteri/qmk_firmware/blob/8c29ffb7537d57cbdfe74ec65e9c7fcc6d98265d/keyboards/gergo/keymaps/sevanteri/keymap.c#L169-L178
+    float acceration_factor = 1.75;
+    float lin_reduction = 2;
+    float hypotenuse = sqrt(pow(mouse_report->x, 2) + sqrt(pow(mouse_report->y, 2)));
+    float scaled_hypotenuse = powf(hypotenuse, acceration_factor) / lin_reduction;
+    float angle = atan2f(mouse_report->y, mouse_report->x);
+    mouse_report->x += (scaled_hypotenuse * cosf(angle));
+    mouse_report->y += (scaled_hypotenuse * sinf(angle));
+
     mouse_report->x = X_IS_NEG ? ((!X_IS_OVF && -127 <= mouse_report->x && mouse_report->x <= -1) ? mouse_report->x : -127) : ((!X_IS_OVF && 0 <= mouse_report->x && mouse_report->x <= 127) ? mouse_report->x : 127);
     mouse_report->y = Y_IS_NEG ? ((!Y_IS_OVF && -127 <= mouse_report->y && mouse_report->y <= -1) ? mouse_report->y : -127) : ((!Y_IS_OVF && 0 <= mouse_report->y && mouse_report->y <= 127) ? mouse_report->y : 127);
 
