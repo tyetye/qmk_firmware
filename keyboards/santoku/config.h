@@ -48,6 +48,8 @@
 // Configure the SSD1306OLED display
 //#define USE_I2C
 #define OLED_DISPLAY_128X64
+#define I2C1_SCL_PIN  GP3
+#define I2C1_SDA_PIN  GP2 
 
 // Configure rotary encoder
 //#define ENCODERS_PAD_A { D4 }
@@ -57,11 +59,11 @@
 
 //#ifdef PS2_MOUSE_ENABLE
 
-#define PS2_MOUSE_SCROLL_BTN_SEND 500 /* Default is 300 */
+//#define PS2_MOUSE_SCROLL_BTN_SEND 800 /* Default is 300 */
 //#define PS2_MOUSE_INVERT_BUTTONS
 
-#undef PS2_MOUSE_SCROLL_BTN_MASK
-#define PS2_MOUSE_SCROLL_BTN_MASK (1<<PS2_MOUSE_BTN_MIDDLE) /* Default */
+//#undef PS2_MOUSE_SCROLL_BTN_MASK
+//#define PS2_MOUSE_SCROLL_BTN_MASK (1<<PS2_MOUSE_BTN_MIDDLE) /* Default */
 #define PS2_MOUSE_BTN_LEFT      0
 #define PS2_MOUSE_BTN_RIGHT     1
 #define PS2_MOUSE_BTN_MIDDLE    2

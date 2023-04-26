@@ -1,5 +1,5 @@
 {
-    "keyboard_name": "Santoku",
+    "keyboard_name": "SantokuPi",
     "manufacturer": "Gestalt Input",
     "url": "https://www.gestaltinput.com",
     "development_board": "elite_pi",
@@ -9,14 +9,14 @@
     "usb": {
         "vid": "0xC1ED",
         "pid": "0x23B0",
-        "device_version": "1.0.0"
+        "device_version": "2.0.0"
     },
     "ps2": {
         "enabled"   : true,
         "mouse_enabled" : true,
-        "clock_pin" : "GP13",
-        "data_pin"  : "GP1",
-        "driver"    : "usart"
+        "clock_pin" : "GP1",
+        "data_pin"  : "GP0",
+        "driver"    : "vendor"
     },
     "layouts": {
         "LAYOUT": {
