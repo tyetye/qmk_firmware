@@ -183,6 +183,9 @@ void display_placeholder(setting_id_t id, bool is_current);
 void display_int(setting_id_t id, bool is_current);
 void display_progress_x6(setting_id_t id, bool is_current);
 void display_bool(setting_id_t id, bool is_current);
+
+void rotate_point_cordic_fixed_point(report_mouse_t *mouse_report, int angle_deg);
+
 setting_t settings[NUM_SETTINGS] = {
     {SETTING_TP_ACCELERATION,       "TP Accel    ",      display_progress_x6},
     {SETTING_TP_SPEED,              "TP Speed    ",      display_progress_x6},
@@ -522,49 +525,234 @@ bool oled_task_user(void) {
 
 
 
+void ps2_mouse_moved_user(report_mouse_t *mouse_report) {
+    rotate_point_cordic_fixed_point(mouse_report,80);
+}
+
+
+#define FIXED_POINT_SHIFT 16
+#define CORDIC_GAIN 39796
+#define FIXED_POINT_MULTIPLIER ((int64_t)1LL << FIXED_POINT_SHIFT)
+
+// Precomputed angles for CORDIC algorithm
+int cordic_angles_fixed[] = {51471, 30345, 16017, 8279, 4166, 2094, 1048, 525, 262, 131, 66, 33, 16, 8, 4, 2, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+
+void rotate_point_cordic_fixed_point(report_mouse_t *mouse_report, int angle_deg) {
+    // Convert the angle from degrees to fixed point format
+    int64_t angle_fixed = ((int64_t)angle_deg * (1LL << FIXED_POINT_SHIFT)) / 360;
+
+    // Initialize CORDIC algorithm variables
+    int64_t x = CORDIC_GAIN;
+    int64_t y = 0;
+    int64_t z = angle_fixed;
+
+    // Perform CORDIC iterations
+    for (int i = 0; i < sizeof(cordic_angles_fixed) / sizeof(int); i++) {
+        if (z < 0) {
+            int64_t x_temp = x;
+            x += y >> i;
+            y -= x_temp >> i;
+            z += cordic_angles_fixed[i];
+        } else {
+            int64_t x_temp = x;
+            x -= y >> i;
+            y += x_temp >> i;
+            z -= cordic_angles_fixed[i];
+        }
+    }
+
+    // Calculate rotated point using fixed point math, with rounding
+    int64_t x_in = mouse_report->x;
+    int64_t y_in = mouse_report->y;
+    int64_t x_out = ((x_in * x - y_in * y) + (FIXED_POINT_MULTIPLIER / 2)) >> FIXED_POINT_SHIFT;
+    int64_t y_out = ((x_in * y + y_in * x) + (FIXED_POINT_MULTIPLIER / 2)) >> FIXED_POINT_SHIFT;
+
+    // Update the mouse report with the rotated point
+    mouse_report->x = x_out;
+    mouse_report->y = y_out;
+}
+
+/* // Precomputed angles for CORDIC algorithm */
+/* int cordic_angles_fixed[] = { */
+/*     25735, 15192, 8027, 4140, 2073, 1039, 520, 260, 130, 65, 32, 16, 8, 4, 2, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 */
+/* }; */
+
+/* void rotate_point_cordic_fixed_point(report_mouse_t *mouse_report, int64_t angle) { */
+/*     int64_t x = CORDIC_GAIN; */
+/*     int64_t y = 0; */
+/*     int64_t z = angle; */
+
+/*     for (int i = 0; i < 16; i++) { */
+/*         int64_t x_temp = x; */
+/*         if (z < 0) { */
+/*             x -= y >> i; */
+/*             y += x_temp >> i; */
+/*             z += cordic_angles_fixed[i]; */
+/*         } else { */
+/*             x += y >> i; */
+/*             y -= x_temp >> i; */
+/*             z -= cordic_angles_fixed[i]; */
+/*         } */
+/*     } */
+
+/*     int64_t x_rot_fixed = ((int64_t)mouse_report->x * x - (int64_t)mouse_report->y * y + (FIXED_POINT_MULTIPLIER / 2)) >> FIXED_POINT_SHIFT;  // Rounding */
+/*     int64_t y_rot_fixed = ((int64_t)mouse_report->x * y + (int64_t)mouse_report->y * x + (FIXED_POINT_MULTIPLIER / 2)) >> FIXED_POINT_SHIFT;  // Rounding */
+
+/*     mouse_report->x = x_rot_fixed; */
+/*     mouse_report->y = y_rot_fixed; */
+/* } */
+
+
+
+
+// Test data
+// (50,50,45) => (0, 70.7107)
+// (50,50,325) => (69.63,12.27)
+// (50,50,27) => (21.85, 67.25)
+// (0,50,27) => (22.69, 44.55)
+// (-100,75,350) => (-85.45,91.22)
+// (1,1,135) => (1.313,0)
+// (10,24,135) => (-24.04,-9.89)
+// (-10,-24,135) => (24.04,9.89)
+// (-10,-24,135) => (24.04,9.89)
+// (-15,10,200) => (17.51,-4.26)
+
+
+
+
+
+
+
+
+
+//////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////
+///
+///PYTHON code that works up to this point. Use for testing reference
+//////////////////////////////////////////////////////////////////////////////////////////////////
+/* import math */
+
+/* # Constants for fixed-point format */
+/* FIXED_POINT_SHIFT = 16 */
+/* FIXED_POINT_MULTIPLIER = 1 << FIXED_POINT_SHIFT */
+
+/* # Arctangent table for CORDIC algorithm (precomputed fixed-point angles) */
+/* cordic_angles_fixed = [51471, 30345, 16017, 8279, 4166, 2094, 1048, 525, 262, 131, 66, 33, 16, 8, 4, 2, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] */
+
+/* # CORDIC gain (product of sqrt(1 + 2^-2i) for i from 0 to infinity), in fixed-point format (precomputed) */
+/* CORDIC_GAIN = 39796 */
+
+/* def rotate_point_cordic_fixed_point(x, y, angle_fixed): */
+/*     """ */
+/*     Rotate a point by a given angle using the CORDIC algorithm in fixed-point format. */
+
+/*     The angle is provided in fixed-point format, with FIXED_POINT_SHIFT bits of fractional part. */
+
+/*     Returns the rotated point coordinates in fixed-point format. */
+/*     """ */
+/*     x_ = CORDIC_GAIN */
+/*     y_ = 0 */
+/*     z = angle_fixed */
+
+/*     for i in range(len(cordic_angles_fixed)): */
+/*         if z < 0: */
+/*             x_, y_, z = x_ + (y_ >> i), y_ - (x_ >> i), z + cordic_angles_fixed[i] */
+/*         else: */
+/*             x_, y_, z = x_ - (y_ >> i), y_ + (x_ >> i), z - cordic_angles_fixed[i] */
+
+/*     # Rotate the point using the rotation matrix and fixed-point math */
+/*     x_rot_fixed = ((x * x_ - y * y_) + (FIXED_POINT_MULTIPLIER // 2)) >> FIXED_POINT_SHIFT  # Rounding */
+/*     y_rot_fixed = ((x * y_ + y * x_) + (FIXED_POINT_MULTIPLIER // 2)) >> FIXED_POINT_SHIFT  # Rounding */
+
+/*     return x_rot_fixed, y_rot_fixed */
+
+/* # Test values */
+/* test_values = [ */
+/*     (50, 50, 45), */
+/*     (-50, 50, 45), */
+/*     (-50, -50, 45), */
+/*     (0, 100, 10), */
+/*     (0, 10, 10), */
+/*     (70, 0, 45) */
+/* ] */
+
+/* # Run tests */
+/* for x, y, angle in test_values: */
+/*     # Convert angle to fixed-point */
+/*     angle_fixed = int(math.radians(angle) * FIXED_POINT_MULTIPLIER) */
+
+/*     # Convert x, y to fixed-point */
+/*     x_fixed = x * FIXED_POINT_MULTIPLIER */
+/*     y_fixed = y * FIXED_POINT_MULTIPLIER */
+
+/*     # Rotate point */
+/*     x_rot_fixed, y_rot_fixed = rotate_point_cordic_fixed_point(x_fixed, y_fixed, angle_fixed) */
+
+/*     # Convert the fixed-point results back to floating point */
+/*     x_rot = x_rot_fixed / FIXED_POINT_MULTIPLIER */
+/*     y_rot = y_rot_fixed / FIXED_POINT_MULTIPLIER */
+
+/*     print(f"Input: ({x}, {y}, {angle}) => Output: ({x_rot}, {y_rot})") */
+
+//////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+
+
+
+
+
+
+
+
+
 // TODO: Move the speed and acceleration code into a separate function to make more modular
 // TODO: Move the drag scroll counter code into a separate function to make more modular
 // TODO: Move the mouse acceleration and speed code into a separate function, like rotate_mouse_coordinates()
 // TODO: If possible, don't convert values back to int between functions. Keep as floats, round one time at the end.
-void ps2_mouse_moved_user(report_mouse_t *mouse_report) {
-    rotate_mouse_coordinates(mouse_rotation_angle, mouse_report);
-    // The math below turns the Trackpoint x and y reports (movements) into a vector and scales the vector with some trigonometry.
-    // This allows the user to dynamically adjust the mouse cursor sensitivity to their liking.
-    // It also results in arguably smoother movement than just multiplying the x and y values by some fixed value.
-    // (and yeah, there's some unnecessary/redundant math going here. I'm hoping to lay the foundation for things like software adjustable negative inertia.)
-    if (mouse_report->x != 0 || mouse_report->y != 0) {
-        float hypotenuse        = sqrt((mouse_report->x * mouse_report->x) + (mouse_report->y * mouse_report->y));
-        float scaled_hypotenuse = pow(hypotenuse, acceleration_values[acceleration_setting]) / linear_reduction_values[linear_reduction_setting];
-        float angle             = atan2(mouse_report->y, mouse_report->x);
-        mouse_report->x += (scaled_hypotenuse * cos(angle));
-        mouse_report->y += (scaled_hypotenuse * sin(angle));
-    }
-    // Drag scrolling with the Trackpoint is reported so often that it makes the feature unusable without slowing it down.
-    // The below code only reports when the counter is evenly divisible by the chosen integer speed.
-    // Skipping reports is technically, probably, not ideal. I'd like to find a way to send a slower speed without skipping.
-    // As is, however, it works well and is user configurable from the Options screen.
-    static uint16_t drag_scroll_counter = 0;
-    drag_scroll_counter == 40320 ? drag_scroll_counter = 0 : drag_scroll_counter++ ; // Because 8!==40320 (allows clean mod divisibility and avoids scrolling surge when resetting to 0)
-    if ((mouse_report->v != 0 || mouse_report->h != 0) && drag_scroll_counter % drag_scroll_speed_values[drag_scroll_speed_setting] != 0) {
-        mouse_report->v = 0;
-        mouse_report->h = 0;
-    }
-}
+/* void ps2_mouse_moved_user(report_mouse_t *mouse_report) { */
+/*     rotate_mouse_coordinates(mouse_rotation_angle, mouse_report); */
+/*     // The math below turns the Trackpoint x and y reports (movements) into a vector and scales the vector with some trigonometry. */
+/*     // This allows the user to dynamically adjust the mouse cursor sensitivity to their liking. */
+/*     // It also results in arguably smoother movement than just multiplying the x and y values by some fixed value. */
+/*     // (and yeah, there's some unnecessary/redundant math going here. I'm hoping to lay the foundation for things like software adjustable negative inertia.) */
+/*     if (mouse_report->x != 0 || mouse_report->y != 0) { */
+/*         float hypotenuse        = sqrt((mouse_report->x * mouse_report->x) + (mouse_report->y * mouse_report->y)); */
+/*         float scaled_hypotenuse = pow(hypotenuse, acceleration_values[acceleration_setting]) / linear_reduction_values[linear_reduction_setting]; */
+/*         float angle             = atan2(mouse_report->y, mouse_report->x); */
+/*         mouse_report->x += (scaled_hypotenuse * cos(angle)); */
+/*         mouse_report->y += (scaled_hypotenuse * sin(angle)); */
+/*     } */
+/*     // Drag scrolling with the Trackpoint is reported so often that it makes the feature unusable without slowing it down. */
+/*     // The below code only reports when the counter is evenly divisible by the chosen integer speed. */
+/*     // Skipping reports is technically, probably, not ideal. I'd like to find a way to send a slower speed without skipping. */
+/*     // As is, however, it works well and is user configurable from the Options screen. */
+/*     static uint16_t drag_scroll_counter = 0; */
+/*     drag_scroll_counter == 40320 ? drag_scroll_counter = 0 : drag_scroll_counter++ ; // Because 8!==40320 (allows clean mod divisibility and avoids scrolling surge when resetting to 0) */
+/*     if ((mouse_report->v != 0 || mouse_report->h != 0) && drag_scroll_counter % drag_scroll_speed_values[drag_scroll_speed_setting] != 0) { */
+/*         mouse_report->v = 0; */
+/*         mouse_report->h = 0; */
+/*     } */
+/* } */
 
-void rotate_mouse_coordinates(uint16_t angle, report_mouse_t *mouse_report) {
-    // because pi/180 = 0.017453
-    static const float degree = 0.017453f;
+/* void rotate_mouse_coordinates(uint16_t angle, report_mouse_t *mouse_report) { */
+/*     // because pi/180 = 0.017453 */
+/*     static const float degree = 0.017453f; */
 
-    float radians = angle * degree;
+/*     float radians = angle * degree; */
 
-    // Need to save these values because we rewrite mouse_report->x immediately but reuse the value to find the rotated y value
-    int current_x = mouse_report->x;
-    int current_y = mouse_report->y;
+/*     // Need to save these values because we rewrite mouse_report->x immediately but reuse the value to find the rotated y value */
+/*     int current_x = mouse_report->x; */
+/*     int current_y = mouse_report->y; */
 
-    // Calculate rotated x & y, convert back to an int
-    mouse_report->x = round(cos(radians) * current_x - sin(radians) * current_y);
-    mouse_report->y = round(sin(radians) * current_x + cos(radians) * current_y);
-}
+/*     // Calculate rotated x & y, convert back to an int */
+/*     mouse_report->x = round(cos(radians) * current_x - sin(radians) * current_y); */
+/*     mouse_report->y = round(sin(radians) * current_x + cos(radians) * current_y); */
+/* } */
 
 bool encoder_update_user(uint8_t index, bool clockwise) {
     //report_mouse_t currentReport     = pointing_device_get_report();
