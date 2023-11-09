@@ -416,10 +416,10 @@ void process_combo_event(uint16_t combo_index, bool pressed) {
             if (pressed) {
                 tap_code16(KC_CAPS);
             }
-        case COMBO_FG_TAB:
-            if (pressed) {
-                tap_code16(KC_TAB);
-            }
+        /* case COMBO_FG_TAB: */
+        /*     if (pressed) { */
+        /*         tap_code16(KC_TAB); */
+        /*     } */
             break;
     }
 }
@@ -436,6 +436,7 @@ void matrix_scan_user(void) {
 #ifdef OLED_ENABLE
 bool oled_task_user(void) {
     static bool show_vanity_text = true;
+    led_t led_state = { .raw = host_keyboard_leds() };
 
     if (show_vanity_text) {
         oled_write_ln_P(PSTR("   Santoku Keyboard"), false);
@@ -454,7 +455,7 @@ bool oled_task_user(void) {
             case _QWERTY:
                 if (is_alt_tab_pressed == ALTTAB_PRESSED ||  alt_tab_timer > 0) {
                     oled_write_ln_P(PSTR("   Alt-Tab Active   "), true);
-                } else if ((host_keyboard_leds() & (1<<USB_LED_CAPS_LOCK))) {
+                } else if (led_state.caps_lock) {
                     oled_write_ln_P(PSTR("      Caps Lock     "), true);
                 } else if ( is_caps_word_on() ) {
                     oled_write_ln_P(PSTR("      Caps Word     "), true);
