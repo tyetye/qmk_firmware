@@ -154,8 +154,7 @@ enum santoku_keycodes {
     SETTINGS_DOWN,
     SETTINGS_LEFT,
     SETTINGS_RIGHT,
-    SETTINGS_EXIT,
-    A_B_TEST
+    SETTINGS_EXIT
 };
 
 const uint16_t PROGMEM combo_yui[]       = {KC_Y, KC_U, KC_I, COMBO_END};
@@ -206,7 +205,6 @@ setting_t settings[NUM_SETTINGS] = {
 
 // One tap alt-tab controls. Improvement to the code example from: https://docs.qmk.fm/#/feature_macros?id=super-alt%e2%86%aftab
 alttab_t is_alt_tab_pressed = ALTTAB_INACTIVE;
-
 uint16_t alt_tab_timer      = 0;
 uint16_t alt_tab_timeout    = 300;
 
@@ -269,7 +267,6 @@ const char PROGMEM santoku_logo[] = {
 };
 
 // Santoku keymap layout
-// TODO: figure out why LALT_T doesn't "stick" when held down. It just presses "ALT" then releases. So, using RALT for everything right now.
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     [_QWERTY] =
     {/*QWERTY*/
@@ -294,7 +291,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 
     [_FUNCTION] =
     {/*FUNCTION*/
-        {KC_TAB,  ___x___,       ___x___, ___x___, ___x___, ___x___, ___x___, ___x___, A_B_TEST,       ___x___, ___x___, ___x___},
+        {KC_TAB,  ___x___,       ___x___, ___x___, ___x___, ___x___, ___x___, ___x___, ___x___,       ___x___, ___x___, ___x___},
         {KC_ESC,  LGUI_T(KC_F1), LALT_T(KC_F2),          LCTL_T(KC_F3),          LSFT_T(KC_F4),     KC_F5,             KC_F6,                 RSFT_T(KC_F7),         RCTL_T(KC_F8), RALT_T(KC_F9), RGUI_T(KC_F10), ___x___},
         {_______, ___x___,       ___x___,                ___x___,                ___x___,           ___x___,           KC_F11,                KC_F12,                ___x___,       ___x___, TO(_SETTINGS), _______},
         {___x___, ___x___,       ___x___,                KC_DEL,                 KC_SPC,            OVERVIEW,          ___x___,               ___x___,               QK_BOOT,       ___x___, ___x___, ___x___}},
@@ -350,44 +347,35 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
             return true;
 
         case SETTINGS_LEFT:
-        case SETTINGS_RIGHT: {
-                                 if (record->event.pressed) {
-                                     int8_t adjustment = (keycode == SETTINGS_LEFT) ? -1 : 1;
-                                     if (settings_selected_setting == SETTING_ROTATION_ANGLE) {
-                                         adjust_setting_uint16(&mouse_rotation_angle, adjustment, 0, 359);
-                                     }
-                                     else if (settings_selected_setting == SETTING_ALT_TAB_TIMEOUT) {
-                                         adjust_setting_uint16(&alt_tab_timeout, adjustment * 25, 100, 1500);
-                                     }
-                                     else if (settings_selected_setting == SETTING_TP_ACCELERATION) {
-                                         adjust_setting_uint8(&acceleration_setting, adjustment, 0, 5);
-                                     }
-                                     else if (settings_selected_setting == SETTING_TP_SPEED) {
-                                         adjust_setting_uint8(&linear_reduction_setting, adjustment, 0, 5);
-                                     }
-                                     else if (settings_selected_setting == SETTING_TP_SCROLL_SPEED) {
-                                         adjust_setting_uint8(&drag_scroll_speed_setting, adjustment, 0, 5);
-                                     }
-                                     else if (settings_selected_setting == SETTING_PINKY_SHIFT) {
-                                         is_pinky_shift_keys_active = !is_pinky_shift_keys_active;
-                                     }
-                                 }
-                                 return true;
-                             }
+        case SETTINGS_RIGHT:
+            if (record->event.pressed) {
+                int8_t adjustment = (keycode == SETTINGS_LEFT) ? -1 : 1;
+                if (settings_selected_setting == SETTING_ROTATION_ANGLE) {
+                    adjust_setting_uint16(&mouse_rotation_angle, adjustment, 0, 359);
+                }
+                else if (settings_selected_setting == SETTING_ALT_TAB_TIMEOUT) {
+                    adjust_setting_uint16(&alt_tab_timeout, adjustment * 25, 100, 1500);
+                }
+                else if (settings_selected_setting == SETTING_TP_ACCELERATION) {
+                    adjust_setting_uint8(&acceleration_setting, adjustment, 0, 5);
+                }
+                else if (settings_selected_setting == SETTING_TP_SPEED) {
+                    adjust_setting_uint8(&linear_reduction_setting, adjustment, 0, 5);
+                }
+                else if (settings_selected_setting == SETTING_TP_SCROLL_SPEED) {
+                    adjust_setting_uint8(&drag_scroll_speed_setting, adjustment, 0, 5);
+                }
+                else if (settings_selected_setting == SETTING_PINKY_SHIFT) {
+                    is_pinky_shift_keys_active = !is_pinky_shift_keys_active;
+                }
+            }
+            return true;
 
         case SETTINGS_EXIT:
             layer_clear();
             save_settings_to_eeprom();
             return false;  // needs to be false so qmk doesn't send keystroke. We just want to manually exit the Settings screen.
 
-        case A_B_TEST:
-            if (record->event.pressed) {
-                scroll_wheel_test_setting++;
-                if (scroll_wheel_test_setting > FANCY2) {
-                    scroll_wheel_test_setting = 0;
-                }
-            }
-            return true;
     }
     return true;
 }
